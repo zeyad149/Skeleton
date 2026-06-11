@@ -112,11 +112,30 @@ export function createSpineRig(root, registry) {
   joints.sort((a, b) => a.pivot.y - b.pivot.y);
   const totalSpineWeight = joints.reduce((s, j) => s + j.weight, 0) || 1;
 
-  // ----- Assign every node a level (how many joints sit below its centre) ----
-  for (const n of nodes) {
+  // ----- Assign every node a motion level -----
+  // Only the spine (vertebrae + discs) bends progressively. Everything else is
+  // a rigid body that must NOT be sheared by per-bone height — otherwise multi-
+  // bone limbs tear apart (e.g. the forearm separating at the elbow). So:
+  //   • spine vertebrae + discs  -> progressive level by their centre height
+  //   • lower body & pelvis      -> level by height (single bones, ride the hip)
+  //   • upper body (ribcage,      -> ONE shared level at the top of the chain, so
+  //     shoulders, arms, skull)      the whole upper body tips with the spine as
+  //                                  a rigid unit (no tearing)
+  const TOP_LEVEL = joints.length;
+  const levelByHeight = (y) => {
     let level = 0;
-    for (const j of joints) if (j.pivot.y < n.center.y) level++;
-    n.level = level;
+    for (const j of joints) if (j.pivot.y < y) level++;
+    return level;
+  };
+  for (const n of nodes) {
+    const r = n.entry.region;
+    if (r === REGIONS.CERVICAL || r === REGIONS.THORACIC || r === REGIONS.LUMBAR || r === REGIONS.DISC) {
+      n.level = levelByHeight(n.center.y); // the bending spine
+    } else if (isLowerBody(n.entry.name) || r === REGIONS.PELVIS || r === REGIONS.SACRUM || r === REGIONS.COCCYX) {
+      n.level = levelByHeight(n.center.y); // pelvis/legs/feet — ride the hip joint
+    } else {
+      n.level = TOP_LEVEL; // ribcage, shoulders, arms, hands, skull — rigid upper body
+    }
   }
 
   // ----- Map each disc to the joint nearest it, and find its thickness axis --
@@ -294,6 +313,15 @@ export function createSpineRig(root, registry) {
 
 function easeInOut(t) {
   return t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
+}
+
+// Lower-limb / foot bones, matched on normalised names. Z-Anatomy disambiguates
+// toes vs fingers with "of foot" / metatarsal vs "of hand" / metacarpal, so
+// these patterns won't catch hand bones (which belong to the rigid upper body).
+const LOWER_RE =
+  /femur|patella|\btibia|fibula|tarsal|metatars|calcaneus|talus|navicular|cuboid|cuneiform|sesamoid|of foot|hallux|\btoe/i;
+function isLowerBody(name) {
+  return LOWER_RE.test((name || '').replace(/_/g, ' '));
 }
 
 function computeHipPivot(registry, root) {

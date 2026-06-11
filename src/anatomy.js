@@ -105,7 +105,11 @@ export function labelFor(entry) {
  * identifier like "L4", "T12", "C1", or "L4-L5" for discs when detectable.
  */
 export function classifyByName(rawName) {
-  const name = (rawName || '').toLowerCase();
+  // Three.js GLTFLoader sanitizes node names: spaces become underscores and
+  // dots are stripped (e.g. "Vertebra L4" -> "Vertebra_L4"). Underscores are
+  // word characters, which silently breaks \b boundaries in the regexes below,
+  // so normalise them back to spaces before matching.
+  const name = (rawName || '').toLowerCase().replace(/_/g, ' ');
 
   // Discs first (so "disc l4-l5" isn't mistaken for a lumbar vertebra)
   if (/disc|disque|قرص|intervertebral/.test(name)) {
@@ -230,9 +234,11 @@ const FOCUS_REGIONS = new Set([
 
 // Ribcage parts: ribs, costal cartilage, sternum — hidden by the "Hide ribcage"
 // view so the thoracic spine is exposed while the rest of the figure remains.
-const RIBCAGE_RE = /\brib\b|costal cartilage|sternum|manubrium|xiphoid/i;
+// Names are normalised (underscores->spaces) because the GLTF importer strips
+// dots, turning "Eighth rib.l" into "Eighth_ribl".
+const RIBCAGE_RE = /\brib|costal|sternum|manubrium|xiphoid/i;
 export function isRibcage(name) {
-  return RIBCAGE_RE.test(name || '');
+  return RIBCAGE_RE.test((name || '').replace(/_/g, ' '));
 }
 
 /**
