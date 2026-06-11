@@ -54,59 +54,68 @@ function regionWeight(region, code) {
 }
 
 export function createSpineRig(root, registry) {
-  // ----- Capture rest state for every mesh (local to its parent) -----
-  const nodes = registry.parts.map((p) => ({
-    entry: p,
-    mesh: p.mesh,
-    restPos: p.mesh.position.clone(),
-    restQuat: p.mesh.quaternion.clone(),
-    restScale: p.mesh.scale.clone(),
-    y: worldY(p.mesh),
-    level: 0
-  }));
+  root.updateWorldMatrix(true, true);
+  const _box = new THREE.Box3();
+  const _c = new THREE.Vector3();
 
-  // ----- Hip pivot: centre of pelvis/sacrum, near the femoral heads -----
-  const hipPivot = computeHipPivot(registry, root);
+  // ----- Capture rest state + TRUE geometry centre (root-local) per mesh -----
+  // IMPORTANT: some exports (e.g. Z-Anatomy) bake bone positions into the mesh
+  // GEOMETRY and leave many node origins identical/meaningless. So we locate
+  // each bone by its world bounding-box centre, not its node translation.
+  // Posing still writes the node transform — applying a rigid transform A to the
+  // node correctly carries the geometry, wherever the node origin sits.
+  const nodes = registry.parts.map((p) => {
+    _box.setFromObject(p.mesh);
+    _box.getCenter(_c);
+    return {
+      entry: p,
+      mesh: p.mesh,
+      restPos: p.mesh.position.clone(),
+      restQuat: p.mesh.quaternion.clone(),
+      restScale: p.mesh.scale.clone(),
+      center: root.worldToLocal(_c.clone()), // root-local geometry centre
+      level: 0
+    };
+  });
+  const centerOf = new Map(nodes.map((n) => [n.entry, n.center]));
 
-  // ----- Ordered movable vertebrae (above the sacrum), ascending Y -----
+  // ----- Hip pivot (geometry-based), in root-local space -----
+  const hipPivot = root.worldToLocal(computeHipPivot(registry, root));
+
+  // ----- Ordered movable vertebrae (above the sacrum), ascending by centre ---
   const movable = registry.parts
     .filter((p) =>
       [REGIONS.LUMBAR, REGIONS.THORACIC, REGIONS.CERVICAL].includes(p.region)
     )
-    .map((p) => ({ entry: p, y: worldY(p.mesh) }))
-    .sort((a, b) => a.y - b.y);
+    .map((p) => ({ entry: p, center: centerOf.get(p) }))
+    .sort((a, b) => a.center.y - b.center.y);
 
-  // ----- Build the joint chain: hip first, then each vertebra's lower joint --
+  // ----- Build the joint chain: hip first, then a joint between each pair -----
   /** @type {Array<{pivot:THREE.Vector3, region:string, code:string|null, weight:number, isHip:boolean}>} */
   const joints = [];
   joints.push({ pivot: hipPivot.clone(), region: 'hip', code: null, weight: 0, isHip: true });
 
   let prevPos = hipPivot.clone();
   for (const v of movable) {
-    const pos = v.entry.mesh.getWorldPosition(new THREE.Vector3());
-    const pivot = prevPos.clone().lerp(pos, 0.5); // joint sits between adjacent bones
+    const pos = v.center;
     joints.push({
-      pivot,
+      pivot: prevPos.clone().lerp(pos, 0.5), // joint sits between adjacent bones
       region: v.entry.region,
       code: v.entry.code,
       weight: regionWeight(v.entry.region, v.entry.code),
       isHip: false
     });
-    prevPos = pos;
+    prevPos = pos.clone();
   }
-
-  // Convert joint pivots into root-local space (the space rest positions live in).
-  for (const j of joints) root.worldToLocal(j.pivot);
 
   // Sort joints by height so "level" = number of joints below a node.
   joints.sort((a, b) => a.pivot.y - b.pivot.y);
   const totalSpineWeight = joints.reduce((s, j) => s + j.weight, 0) || 1;
 
-  // ----- Assign every node a level (how many joints sit below it) -----
+  // ----- Assign every node a level (how many joints sit below its centre) ----
   for (const n of nodes) {
-    const localY = n.restPos.y; // rest positions are parent-local
     let level = 0;
-    for (const j of joints) if (j.pivot.y < localY) level++;
+    for (const j of joints) if (j.pivot.y < n.center.y) level++;
     n.level = level;
   }
 
@@ -121,7 +130,7 @@ export function createSpineRig(root, registry) {
     let best = 1;
     let bestDist = Infinity;
     for (let j = 1; j < joints.length; j++) {
-      const dist = Math.abs(joints[j].pivot.y - d.restPos.y);
+      const dist = Math.abs(joints[j].pivot.y - d.center.y);
       if (dist < bestDist) {
         bestDist = dist;
         best = j;
@@ -260,7 +269,7 @@ export function createSpineRig(root, registry) {
       );
 
       const mat = d.entry.material;
-      if (!mat.color) continue;
+      if (!mat.color || d.entry.highlighted) continue; // don't fight a highlight
       mat.color.copy(d.entry.baseColor).lerp(RED, load);
       // A faint emissive bloom sells the "under load" read on video. Only touch
       // emissive under real load so a clicked disc keeps its highlight at rest.
@@ -285,10 +294,6 @@ export function createSpineRig(root, registry) {
 
 function easeInOut(t) {
   return t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
-}
-
-function worldY(mesh) {
-  return mesh.getWorldPosition(new THREE.Vector3()).y;
 }
 
 function computeHipPivot(registry, root) {

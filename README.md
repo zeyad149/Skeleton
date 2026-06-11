@@ -94,7 +94,7 @@ file is missing, the app falls back to a clearly-marked procedural placeholder.
 | Re-frame if you drift | **Reset view** button |
 | Label a bone | Click / tap it (click again or tap empty space to clear) |
 | Camera presets | Front / Side / Back / Lumbar buttons |
-| Display mode | **Full body** / **Isolate** (ghost the rest) / **Spine only** (hide the rest) |
+| Display mode | **Full body** / **Isolate** (ghost the rest) / **Hide ribcage** (expose the spine) |
 | Highlight a spine region | **Cervical / Thoracic / Lumbar / Sacrum / Coccyx** buttons |
 | Highlight one vertebra/disc | **Single part…** dropdown (shows its label) · **Clear** to reset |
 | Color-code spine regions | **Color-code regions** button |
@@ -105,8 +105,8 @@ file is missing, the app falls back to a clearly-marked procedural placeholder.
 
 During **flexion / extension** the intervertebral discs both **redden** and
 physically **squash and bulge** under load — most at the lumbar levels, which
-flex most — to show disc compression. Use **Spine only** + the highlight
-buttons to record a clean, labelled spine in isolation.
+flex most — to show disc compression. Use **Hide ribcage** + the highlight
+buttons to record a clean, exposed spine in context.
 
 ---
 

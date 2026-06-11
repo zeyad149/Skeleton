@@ -184,23 +184,33 @@ export function setRegionColors(registry, on) {
   }
 }
 
-const HIGHLIGHT_EMISSIVE = new THREE.Color(0x2b6cff);
+const HIGHLIGHT_COLOR = new THREE.Color(0xff2a2a); // strong red — reads on video
+const HIGHLIGHT_EMISSIVE = new THREE.Color(0xff1a1a);
 
 /**
- * Highlight a single part with an emissive glow (reversible). Pass null to
- * clear. Returns the previously-highlighted entry's mesh for bookkeeping.
+ * Highlight a part in red — both a bright emissive glow AND a red-tinted body,
+ * so it's unmistakable on a recording. Fully reversible. Sets `entry.highlighted`
+ * so the animation loop leaves a highlighted disc's colour alone.
  */
 export function highlightPart(entry) {
-  if (!entry || !entry.material.emissive) return;
-  entry.material.emissive.copy(HIGHLIGHT_EMISSIVE);
-  entry.material.emissiveIntensity = 0.6;
+  if (!entry || !entry.material.color) return;
+  entry.highlighted = true;
+  entry.material.color.copy(HIGHLIGHT_COLOR);
+  if (entry.material.emissive) {
+    entry.material.emissive.copy(HIGHLIGHT_EMISSIVE);
+    entry.material.emissiveIntensity = 0.9;
+  }
 }
 
 export function clearHighlight(entry) {
-  if (!entry || !entry.material.emissive) return;
-  if (entry.baseEmissive) entry.material.emissive.copy(entry.baseEmissive);
-  else entry.material.emissive.setHex(0x000000);
-  entry.material.emissiveIntensity = 1.0;
+  if (!entry || !entry.material.color) return;
+  entry.highlighted = false;
+  entry.material.color.copy(entry.baseColor);
+  if (entry.material.emissive) {
+    if (entry.baseEmissive) entry.material.emissive.copy(entry.baseEmissive);
+    else entry.material.emissive.setHex(0x000000);
+    entry.material.emissiveIntensity = 1.0;
+  }
 }
 
 /**
@@ -218,22 +228,19 @@ const FOCUS_REGIONS = new Set([
   REGIONS.PELVIS
 ]);
 
-// Spine proper (no pelvis) — used by the "Spine only" recording view.
-const SPINE_ONLY_REGIONS = new Set([
-  REGIONS.CERVICAL,
-  REGIONS.THORACIC,
-  REGIONS.LUMBAR,
-  REGIONS.SACRUM,
-  REGIONS.COCCYX,
-  REGIONS.DISC
-]);
+// Ribcage parts: ribs, costal cartilage, sternum — hidden by the "Hide ribcage"
+// view so the thoracic spine is exposed while the rest of the figure remains.
+const RIBCAGE_RE = /\brib\b|costal cartilage|sternum|manubrium|xiphoid/i;
+export function isRibcage(name) {
+  return RIBCAGE_RE.test(name || '');
+}
 
 /**
  * Display mode for the whole model:
  *   'full'    — everything visible, fully opaque.
  *   'isolate' — spine + pelvis stay solid; everything else fades to a ghost.
- *   'spine'   — only the spine + discs are shown; everything else is HIDDEN
- *               (clean plate for highlighting/recording the spine alone).
+ *   'noribs'  — hide the ribcage (ribs, costal cartilage, sternum) so the spine
+ *               is exposed but the figure stays recognisable.
  * Always resets first, so switching modes is order-independent.
  */
 export function applyViewMode(registry, mode) {
@@ -252,9 +259,9 @@ export function applyViewMode(registry, mode) {
       part.material.opacity = 0.06;
       part.material.depthWrite = false;
     }
-  } else if (mode === 'spine') {
+  } else if (mode === 'noribs') {
     for (const part of registry.parts) {
-      if (!SPINE_ONLY_REGIONS.has(part.region)) part.mesh.visible = false;
+      if (isRibcage(part.name)) part.mesh.visible = false;
     }
   }
 }
