@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>Anatomy Skeleton Studio</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <!-- Inter (Latin) + Noto Sans Arabic for clean, video-readable bilingual labels -->
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+Arabic:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/src/styles.css" />
+  </head>
+  <body>
+    <!-- Render target -->
+    <canvas id="scene"></canvas>
+
+    <!-- Loading progress overlay -->
+    <div id="loader" class="loader">
+      <div class="loader__inner">
+        <div class="loader__title">Loading skeleton</div>
+        <div class="loader__bar">
+          <div id="loader-fill" class="loader__fill"></div>
+        </div>
+        <div id="loader-pct" class="loader__pct">0%</div>
+        <div id="loader-status" class="loader__status"></div>
+      </div>
+    </div>
+
+    <!-- Minimal UI (hideable for recording). Stage 1: backgrounds only. -->
+    <div id="ui" class="ui">
+      <div class="ui__group">
+        <div class="ui__label">Background</div>
+        <div class="ui__row">
+          <button class="btn is-active" data-bg="gradient">Dark</button>
+          <button class="btn" data-bg="white">White</button>
+          <button class="btn" data-bg="green">Green</button>
+        </div>
+      </div>
+      <div class="ui__hint">Press <kbd>H</kbd> to hide UI for recording</div>
+    </div>
+
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>

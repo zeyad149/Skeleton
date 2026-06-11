@@ -1,0 +1,10 @@
+node_modules/
+dist/
+.DS_Store
+*.log
+
+# Large model binaries — keep them out of git. Each user supplies their own.
+models/*.glb
+models/*.gltf
+models/*.bin
+models/*.drc
