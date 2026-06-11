@@ -2,23 +2,27 @@ import * as THREE from 'three';
 
 /**
  * Physically-based bone material with a subtle subsurface / sheen look.
- * Used for the placeholder in Stage 1; real-mesh bones get this in Stage 2.
+ *
+ * Note: we deliberately AVOID `transmission` here. It forces Three.js into a
+ * separate transmissive render pass that is costly (works against the 60fps
+ * target) and brittle across GPUs/drivers. The soft "not-plastic" bone read is
+ * achieved with sheen + a faint warm emissive instead, which is robust and
+ * fast. Used for the placeholder and for any untextured real-mesh bones.
  */
 export function makeBoneMaterial() {
   return new THREE.MeshPhysicalMaterial({
     color: 0xeae3d2,
-    roughness: 0.62,
+    roughness: 0.6,
     metalness: 0.0,
-    clearcoat: 0.12,
+    clearcoat: 0.1,
     clearcoatRoughness: 0.5,
-    sheen: 0.4,
-    sheenColor: new THREE.Color(0xfff6e8),
+    sheen: 0.5,
+    sheenColor: new THREE.Color(0xfff3e2),
     sheenRoughness: 0.6,
-    // Faint translucency to read as bone rather than plastic
-    transmission: 0.04,
-    thickness: 0.4,
-    ior: 1.35,
-    envMapIntensity: 0.5
+    // Faint warm self-glow fakes shallow subsurface scatter without transmission.
+    emissive: new THREE.Color(0x2a2017),
+    emissiveIntensity: 0.25,
+    envMapIntensity: 0.6
   });
 }
 
@@ -33,6 +37,7 @@ export function makeDiscMaterial() {
     clearcoat: 0.3,
     clearcoatRoughness: 0.4,
     sheen: 0.2,
+    emissive: new THREE.Color(0x000000),
     envMapIntensity: 0.6
   });
 }

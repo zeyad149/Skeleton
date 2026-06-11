@@ -63,11 +63,43 @@ loadSkeleton({ onProgress: setProgress, onStatus: setStatus }).then(
     object.updateMatrixWorld(true);
     rig = createSpineRig(object, registry);
 
+    // Diagnostics: confirm the model is non-empty and in front of the camera.
+    const bbox = new THREE.Box3().setFromObject(object);
+    const bsize = bbox.getSize(new THREE.Vector3());
+    console.info('[diag] model bounds', {
+      min: bbox.min.toArray().map((n) => +n.toFixed(2)),
+      max: bbox.max.toArray().map((n) => +n.toFixed(2)),
+      size: bsize.toArray().map((n) => +n.toFixed(2)),
+      meshes: registry.parts.length,
+      visible: object.visible
+    });
+    if (bsize.length() === 0 || !isFinite(bsize.length())) {
+      console.error('[diag] model has empty/invalid bounds — nothing to render.');
+    }
+
+    // Snap the camera to a guaranteed framing of whatever loaded.
+    frameObject(camera, controls, bbox);
+
     setProgress(1);
     // Brief pause so the 100% state is visible, then fade the overlay out.
     setTimeout(hideLoader, isPlaceholder ? 250 : 500);
   }
 );
+
+// Position the camera so the given bounding box is comfortably in frame.
+function frameObject(cam, ctrls, bbox) {
+  const size = bbox.getSize(new THREE.Vector3());
+  const center = bbox.getCenter(new THREE.Vector3());
+  const maxDim = Math.max(size.x, size.y, size.z) || 1.7;
+  const dist =
+    (maxDim * 0.62) / Math.tan(THREE.MathUtils.degToRad(cam.fov * 0.5));
+  cam.position.set(center.x, center.y + size.y * 0.05, center.z + dist * 1.15);
+  cam.near = Math.max(dist / 100, 0.01);
+  cam.far = dist * 10;
+  cam.updateProjectionMatrix();
+  ctrls.target.copy(center);
+  ctrls.update();
+}
 
 function reportSpine(reg) {
   const s = reg.summary();
