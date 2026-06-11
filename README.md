@@ -3,53 +3,10 @@
 A broadcast-quality 3D anatomical skeleton viewer built with **Three.js**, made
 for screen-recording educational videos about lower-back and disc pain.
 
-This is being built in **stages**. You are currently looking at **Stage 1**.
-
----
-
-## Stage 1 — Scene, lighting, color pipeline, loader (this stage)
-
-What's included now:
-
-- **Color-managed rendering** — sRGB output + ACES Filmic tone mapping, so
-  recordings look correct and professional on export.
-- **Studio lighting** — soft key light (with shadows), cool fill, and a rim/back
-  light for clean depth separation, plus a gentle ambient hemisphere.
-- **Image-based lighting** (RoomEnvironment) for realistic PBR materials.
-- **Anti-aliasing on**, pixel ratio capped at 2 for crisp recording.
-- **Soft shadows** (PCFSoft) onto a subtle invisible shadow-catcher.
-- **Toggleable backgrounds** — neutral dark gradient, pure white, and solid
-  chroma-key green.
-- **Smooth orbit / zoom / pan** (mouse + touch) — refined further in Stage 3.
-- **Loading progress bar** while the model loads.
-- **Draco + Meshopt ready** GLTF loader.
-- **Hide UI for recording** with the `H` key.
-
-> While `models/skeleton.glb` is absent, the app shows a clearly-marked
-> **procedural placeholder** skeleton so you can confirm the lighting and look.
-> It disappears automatically the moment you add the real GLB.
-
-**Stage 2 (done):** every vertebra and disc is a separately-addressable object;
-a registry classifies the spine into regions; "Color-code regions" proves it.
-
-**Stage 3 (done):** click/tap any bone to highlight it and show a bilingual
-(English + Arabic) label that tracks the part on screen; **Isolate** fades
-everything except spine + pelvis; preset camera buttons (Front / Side / Back /
-Lumbar close-up) animate smoothly between framings.
-
-**Stage 4 (done):** movement animations driven by a forward-kinematics spine
-rig — spinal flexion, extension, lateral flexion, hip hinge, and anterior/
-posterior pelvic tilt — with Play/Pause, a Reset, and a Speed slider (0.1×–2×).
-Discs redden in proportion to how much the spine joint at that disc flexes, so
-spinal flexion lights the lumbar discs red while a hip hinge barely colours them
-— the core teaching contrast for lower-back load.
-
-> **Animation + your real GLB:** the rig rotates the *separated* vertebra meshes
-> about joints inferred from their positions. It works out-of-the-box on the
-> placeholder and on a separated-bone export where the bones share a common
-> (flat) parent. If your GLB is a single skinned mesh, or deeply nested, the
-> bend won't distribute correctly and the rig needs per-model tuning — tell me
-> the structure and I'll adapt it.
+**The real anatomical model is bundled** — no downloads or Blender needed.
+`public/models/skeleton.glb` is a real Z-Anatomy export with every vertebra,
+every intervertebral disc, and both hip bones as individually named, separable
+meshes.
 
 ---
 
@@ -75,55 +32,55 @@ npm run preview
 
 ---
 
-## Which model to download, and where to put it
+## The model: source & license (read before publishing)
 
-Place your model at **`models/skeleton.glb`**. The loader reads exactly that
-path.
+**Source:** [Z-Anatomy — Models of human anatomy](https://github.com/Z-Anatomy/Models-of-human-anatomy)
+**License:** [CC-BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/) —
+commercial use **is allowed**, with two conditions:
 
-### Recommended: Z-Anatomy (free, separated bones)
+1. **Attribute Z-Anatomy.** Add a line like
+   *“3D anatomy model: Z-Anatomy (CC-BY-SA 4.0)”* to your video description or
+   on-screen credits.
+2. **ShareAlike applies to the model itself.** If you ever redistribute the 3D
+   model (or a modified version of it), it must stay under CC-BY-SA 4.0. This
+   does **not** restrict your videos.
 
-**Source:** <https://github.com/Z-Anatomy/Models-of-human-anatomy>
-**License:** Creative Commons **CC-BY-SA 4.0** — commercial use is allowed; you
-must (1) attribute Z-Anatomy and (2) share any modified *model* under the same
-license. Using it in a video is fine with attribution. (The license is also
-noted in `src/loader.js`.)
+The bundled GLB was derived from Z-Anatomy's `Startup.blend`: the “Skeletal
+system” bones (with label/overlay helper objects removed) plus all 23
+“Intervertebral disc” meshes. Included individually named:
+`Atlas (C1)`, `Axis (C2)`, `Vertebra C3…C7`, `Vertebra T1…T12`,
+`Vertebra L1…L5`, `Sacrum`, `Coccyx`, `Intervertebral disc C2-C3 … L5-S1`,
+`Hip bone.l/.r`, and the rest of the skeleton (~300 bones).
 
-Z-Anatomy ships as a Blender `.blend` file, so you export the skeleton to GLB
-once:
-
-1. Download and open `Z-Anatomy.zip` from the repo in **Blender** (free).
-2. In the outliner, isolate the **skeletal system** collection (hide muscles,
-   vessels, nerves, etc.). Keep the bones as **separate objects** — do not join
-   them; later stages rely on per-bone meshes (each vertebra, disc, pelvis).
-3. Select the skeleton, then **File → Export → glTF 2.0 (.glb)** with:
-   - Format: **glTF Binary (.glb)**
-   - Include: **Selected Objects**
-   - Transform: **+Y Up**
-   - Geometry: **Apply Modifiers**; enable **Compression (Draco)** if the file
-     is large.
-4. Save the result as `models/skeleton.glb` in this project.
-
-> Keep the original object names in Blender meaningful (e.g. `L4`, `L5`,
-> `Disc_L4_L5`, `Sacrum`, `Pelvis_R`). Stage 2/3 use these names to find and
-> color individual vertebrae and discs.
-
-### Alternative: a CC-BY skeleton GLB from Sketchfab
-
-If you prefer a ready-made GLB, download a **CC-BY** (or CC0) full-skeleton from
-Sketchfab, confirm the license is commercial-use safe on the model's page, and
-save it as `models/skeleton.glb`. Bones may be a single merged mesh — in that
-case the per-bone features in later stages will be limited unless the model has
-named sub-meshes.
+To swap in a different model, replace `public/models/skeleton.glb`. If the new
+file is missing, the app falls back to a clearly-marked procedural placeholder.
 
 ---
 
-## Offline Draco (optional)
+## Features
 
-The Draco decoder defaults to the Google CDN
-(`https://www.gstatic.com/draco/...`, set in `src/loader.js`). If your network
-blocks CDNs, copy the decoder from
-`node_modules/three/examples/jsm/libs/draco/` into `public/draco/` and change
-`DRACO_DECODER_PATH` in `src/loader.js` to `'/draco/'`.
+- **Color-managed rendering** — sRGB output + ACES Filmic tone mapping, so
+  recordings look correct and professional on export.
+- **Studio lighting** — soft key light (with shadows), cool fill, and a rim/back
+  light for clean depth separation, plus image-based lighting for PBR materials.
+- **Anti-aliasing on**, pixel ratio capped at 2 for crisp recording; soft
+  PCF shadows onto an invisible shadow-catcher.
+- **Toggleable backgrounds** — neutral dark gradient, pure white, and solid
+  chroma-key green.
+- **Per-bone anatomy registry** — every vertebra/disc/bone is independently
+  addressable; “Color-code regions” tints each spine region distinctly.
+- **Click/tap any bone** to highlight it and show a bilingual (English +
+  Arabic) label that tracks the part on screen.
+- **Isolate mode** — fades everything except spine + pelvis.
+- **Preset cameras** — Front / Side / Back / Lumbar close-up, smoothly animated.
+- **Movement animations** — forward-kinematics spine rig: spinal flexion,
+  extension, lateral flexion, hip hinge, anterior/posterior pelvic tilt, with
+  Play/Pause, Reset, and a Speed slider (0.1×–2×).
+- **Disc-compression colouring** — discs redden in proportion to how much the
+  spine joint at that disc flexes: spinal flexion lights the lumbar discs red,
+  while a hip hinge barely colours them — the core teaching contrast for
+  lower-back load.
+- **Loading progress bar**; **hide the whole UI** with `H` for recording.
 
 ---
 
@@ -142,3 +99,14 @@ blocks CDNs, copy the decoder from
 | Slow a movement down | **Speed** slider (0.1×–2×) |
 | Switch background | Dark / White / Green buttons |
 | Hide/show UI | `H` |
+
+---
+
+## Offline Draco (optional)
+
+The GLTF loader is Draco-ready; the decoder defaults to the Google CDN
+(`https://www.gstatic.com/draco/...`, set in `src/loader.js`). The bundled GLB
+is uncompressed (10.6 MB — instant from localhost), so the decoder is only
+fetched if you swap in a Draco-compressed model. If your network blocks CDNs,
+copy the decoder from `node_modules/three/examples/jsm/libs/draco/` into
+`public/draco/` and change `DRACO_DECODER_PATH` in `src/loader.js` to `'/draco/'`.

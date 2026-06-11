@@ -5,9 +5,23 @@ import { MeshoptDecoder } from 'three/examples/jsm/libs/meshopt_decoder.module.j
 import { buildPlaceholder } from './placeholder.js';
 
 /**
- * Path to the real anatomical mesh. Drop your exported file here:
- *   models/skeleton.glb
- * See README.md for exactly which model to download and how to export it.
+ * Anatomical skeleton mesh — bundled at public/models/skeleton.glb.
+ *
+ * SOURCE & LICENSE:
+ *   Model: Z-Anatomy — "Models of human anatomy"
+ *   https://github.com/Z-Anatomy/Models-of-human-anatomy
+ *   License: Creative Commons Attribution-ShareAlike 4.0 (CC-BY-SA 4.0)
+ *   https://creativecommons.org/licenses/by-sa/4.0/
+ *   Commercial use is permitted with attribution; derivative versions of the
+ *   MODEL must remain under CC-BY-SA 4.0. Please credit "Z-Anatomy" in video
+ *   descriptions or on-screen credits.
+ *
+ *   The bundled GLB was derived from Z-Anatomy's Startup.blend by exporting
+ *   the "Skeletal system" bones (real bones only, label/overlay helpers
+ *   removed) plus all 23 "Intervertebral disc" meshes from the Joints
+ *   collection. Every vertebra (Atlas (C1), Axis (C2), Vertebra C3..C7,
+ *   T1..T12, L1..L5), the sacrum, the coccyx, each disc, and both hip bones
+ *   are individually named, separable meshes.
  */
 const MODEL_URL = 'models/skeleton.glb';
 
