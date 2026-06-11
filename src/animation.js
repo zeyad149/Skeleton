@@ -134,7 +134,13 @@ export function createSpineRig(root, registry) {
 
   const axisVec = { x: new THREE.Vector3(1, 0, 0), z: new THREE.Vector3(0, 0, 1) };
   const jointAngles = new Array(joints.length).fill(0);
-  const A = joints.map(() => ({ q: new THREE.Quaternion(), t: new THREE.Vector3() }));
+  // Accumulated transforms, indexed by LEVEL (0..joints.length). A[k] is the
+  // transform for a node with k joints below it; A[0] is the fixed base. Needs
+  // joints.length + 1 entries so a node above every joint (level == J) is valid.
+  const A = Array.from({ length: joints.length + 1 }, () => ({
+    q: new THREE.Quaternion(),
+    t: new THREE.Vector3()
+  }));
 
   function setMovement(name) {
     if (!MOVEMENTS[name]) return;
@@ -197,22 +203,23 @@ export function createSpineRig(root, registry) {
 
     // Walk the chain bottom→top, composing transforms about moving pivots.
     // A[0] is identity (the fixed base: legs, feet, ground-side of the hip).
+    // A[k] applies joints[0..k-1], so joint[k-1] is the k-th joint from the base.
     A[0].q.identity();
     A[0].t.set(0, 0, 0);
     const r = new THREE.Quaternion();
     const c = new THREE.Vector3();
     const rp = new THREE.Vector3();
-    for (let i = 1; i < joints.length; i++) {
-      const j = joints[i];
+    for (let k = 1; k <= joints.length; k++) {
+      const j = joints[k - 1];
       // Hip hinge/tilt rotate about X; spine joints use the movement's axis.
       const useAxis = j.isHip ? axisVec.x : move.axis === 'z' ? axisVec.z : axisVec.x;
-      r.setFromAxisAngle(useAxis, jointAngles[i]);
+      r.setFromAxisAngle(useAxis, jointAngles[k - 1]);
       // c = P - r*P
       rp.copy(j.pivot).applyQuaternion(r);
       c.copy(j.pivot).sub(rp);
-      // A[i] = A[i-1] ∘ Rot(P, r):  q' = q*r ; t' = q*c + t
-      A[i].q.copy(A[i - 1].q).multiply(r);
-      A[i].t.copy(c).applyQuaternion(A[i - 1].q).add(A[i - 1].t);
+      // A[k] = A[k-1] ∘ Rot(P, r):  q' = q*r ; t' = q*c + t
+      A[k].q.copy(A[k - 1].q).multiply(r);
+      A[k].t.copy(c).applyQuaternion(A[k - 1].q).add(A[k - 1].t);
     }
 
     // Pose every node by its level's accumulated transform.

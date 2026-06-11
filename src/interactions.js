@@ -53,13 +53,11 @@ export function createPicker({ renderer, camera, registry, labelEl }) {
   });
 
   function select(entry) {
-    if (selected === entry) {
-      // Toggle off when clicking the same part again.
-      select(null);
-      return;
-    }
+    // Clicking the already-selected part toggles it off. (No recursion: clicking
+    // empty space when nothing is selected is a no-op, not a re-entrant call.)
+    const next = entry && entry === selected ? null : entry;
     if (selected) clearHighlight(selected);
-    selected = entry;
+    selected = next;
     if (!selected) {
       hideLabel();
       return;
