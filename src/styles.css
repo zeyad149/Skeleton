@@ -143,6 +143,13 @@ body {
   color: #06121f;
   font-weight: 600;
 }
+.ui__readout {
+  font-size: 11px;
+  color: var(--ui-muted);
+  line-height: 1.5;
+  max-width: 240px;
+  font-variant-numeric: tabular-nums;
+}
 .ui__hint {
   font-size: 11px;
   color: var(--ui-muted);
