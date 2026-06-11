@@ -171,6 +171,30 @@ body {
   display: flex;
   gap: 6px;
 }
+.ui__row--wrap {
+  flex-wrap: wrap;
+  max-width: 260px;
+}
+.btn--play {
+  min-width: 78px;
+}
+.ui__slider {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 11px;
+  color: var(--ui-muted);
+}
+.ui__slider label {
+  display: flex;
+  justify-content: space-between;
+  letter-spacing: 0.04em;
+}
+.ui__slider input[type='range'] {
+  width: 100%;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
 .btn {
   appearance: none;
   border: 1px solid var(--ui-border);

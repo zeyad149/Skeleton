@@ -5,6 +5,7 @@ import { loadSkeleton } from './loader.js';
 import { buildRegistry, setRegionColors, setIsolate } from './anatomy.js';
 import { createCameraDirector } from './camera.js';
 import { createPicker } from './interactions.js';
+import { createSpineRig } from './animation.js';
 
 /**
  * Anatomy Skeleton Studio — Stage 1
@@ -38,6 +39,7 @@ function hideLoader() {
 let registry = null;
 let director = null;
 let picker = null;
+let rig = null;
 
 loadSkeleton({ onProgress: setProgress, onStatus: setStatus }).then(
   ({ object, isPlaceholder }) => {
@@ -56,6 +58,10 @@ loadSkeleton({ onProgress: setProgress, onStatus: setStatus }).then(
       registry,
       labelEl: document.getElementById('label')
     });
+
+    // Stage 4: spine movement rig (flexion/extension/lateral/hinge/tilt).
+    object.updateMatrixWorld(true);
+    rig = createSpineRig(object, registry);
 
     setProgress(1);
     // Brief pause so the 100% state is visible, then fade the overlay out.
@@ -115,6 +121,49 @@ if (isolateToggle) {
   });
 }
 
+// ---------- Stage 4: movement animations ----------
+const playToggle = document.getElementById('play-toggle');
+const animReset = document.getElementById('anim-reset');
+const speedInput = document.getElementById('speed');
+const speedVal = document.getElementById('speed-val');
+
+document.querySelectorAll('[data-move]').forEach((btn) => {
+  btn.addEventListener('click', () => {
+    if (!rig) return;
+    document
+      .querySelectorAll('[data-move]')
+      .forEach((b) => b.classList.remove('is-active'));
+    btn.classList.add('is-active');
+    rig.setMovement(btn.dataset.move);
+  });
+});
+
+if (playToggle) {
+  playToggle.addEventListener('click', () => {
+    if (!rig) return;
+    const playing = rig.toggle();
+    playToggle.textContent = playing ? '❚❚ Pause' : '▶ Play';
+    playToggle.classList.toggle('is-active', playing);
+  });
+}
+
+if (animReset) {
+  animReset.addEventListener('click', () => {
+    if (!rig) return;
+    rig.reset();
+    playToggle.textContent = '▶ Play';
+    playToggle.classList.remove('is-active');
+  });
+}
+
+if (speedInput) {
+  speedInput.addEventListener('input', () => {
+    const s = parseFloat(speedInput.value);
+    if (rig) rig.setSpeed(s);
+    speedVal.textContent = s.toFixed(1) + '×';
+  });
+}
+
 // ---------- Hide UI for recording (H) ----------
 const ui = document.getElementById('ui');
 window.addEventListener('keydown', (e) => {
@@ -124,8 +173,11 @@ window.addEventListener('keydown', (e) => {
 });
 
 // ---------- Render loop ----------
+const clock = new THREE.Clock();
 renderer.setAnimationLoop(() => {
+  const dt = Math.min(clock.getDelta(), 0.05); // clamp to avoid jumps after tab-out
   controls.update();
+  if (rig) rig.update(dt);
   if (director) director.update();
   if (picker) picker.update();
   renderer.render(scene, camera);

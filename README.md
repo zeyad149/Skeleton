@@ -37,9 +37,19 @@ a registry classifies the spine into regions; "Color-code regions" proves it.
 everything except spine + pelvis; preset camera buttons (Front / Side / Back /
 Lumbar close-up) animate smoothly between framings.
 
-Still to come: Stage 4 (movement animations: flexion, extension, lateral
-flexion, hip hinge, pelvic tilt — plus the disc-compression color effect and a
-speed slider).
+**Stage 4 (done):** movement animations driven by a forward-kinematics spine
+rig — spinal flexion, extension, lateral flexion, hip hinge, and anterior/
+posterior pelvic tilt — with Play/Pause, a Reset, and a Speed slider (0.1×–2×).
+Discs redden in proportion to how much the spine joint at that disc flexes, so
+spinal flexion lights the lumbar discs red while a hip hinge barely colours them
+— the core teaching contrast for lower-back load.
+
+> **Animation + your real GLB:** the rig rotates the *separated* vertebra meshes
+> about joints inferred from their positions. It works out-of-the-box on the
+> placeholder and on a separated-bone export where the bones share a common
+> (flat) parent. If your GLB is a single skinned mesh, or deeply nested, the
+> bend won't distribute correctly and the rig needs per-model tuning — tell me
+> the structure and I'll adapt it.
 
 ---
 
@@ -128,5 +138,7 @@ blocks CDNs, copy the decoder from
 | Camera presets | Front / Side / Back / Lumbar buttons |
 | Isolate spine + pelvis | **Isolate** button |
 | Color-code spine regions | **Color-code regions** button |
+| Play a movement | Pick a movement, then **▶ Play** (Reset returns to neutral) |
+| Slow a movement down | **Speed** slider (0.1×–2×) |
 | Switch background | Dark / White / Green buttons |
 | Hide/show UI | `H` |
