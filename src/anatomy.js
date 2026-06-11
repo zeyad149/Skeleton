@@ -40,6 +40,66 @@ export const REGION_LABELS = {
   [REGIONS.OTHER]: { en: 'Bone', ar: 'عظم' }
 };
 
+// Per-vertebra bilingual region words (for precise labels like "Lumbar
+// vertebra L4 / الفقرة القطنية L4").
+const VERTEBRA_WORDS = {
+  [REGIONS.CERVICAL]: { en: 'Cervical vertebra', ar: 'فقرة عنقية' },
+  [REGIONS.THORACIC]: { en: 'Thoracic vertebra', ar: 'فقرة صدرية' },
+  [REGIONS.LUMBAR]: { en: 'Lumbar vertebra', ar: 'فقرة قطنية' }
+};
+
+// Bilingual names for common non-spine bones, matched loosely by name.
+const BONE_NAMES = [
+  [/skull|cranium|جمجمة/, { en: 'Skull', ar: 'الجمجمة' }],
+  [/mandible|jaw|فك/, { en: 'Mandible', ar: 'الفك السفلي' }],
+  [/clavicle|collar|ترقوة/, { en: 'Clavicle', ar: 'الترقوة' }],
+  [/scapula|shoulder ?blade|لوح الكتف/, { en: 'Scapula', ar: 'لوح الكتف' }],
+  [/sternum|breast ?bone|قص/, { en: 'Sternum', ar: 'عظم القص' }],
+  [/\brib|ribcage|costa|ضلع|قفص/, { en: 'Rib', ar: 'ضلع' }],
+  [/humerus|عضد/, { en: 'Humerus', ar: 'عظم العضد' }],
+  [/radius|كعبرة/, { en: 'Radius', ar: 'الكعبرة' }],
+  [/ulna|زند/, { en: 'Ulna', ar: 'الزند' }],
+  [/forearm|ساعد/, { en: 'Forearm', ar: 'الساعد' }],
+  [/femur|thigh|فخذ/, { en: 'Femur', ar: 'عظم الفخذ' }],
+  [/patella|knee ?cap|رضفة/, { en: 'Patella', ar: 'الرضفة' }],
+  [/tibia|shin|قصبة/, { en: 'Tibia', ar: 'عظم القصبة' }],
+  [/fibula|شظية/, { en: 'Fibula', ar: 'الشظية' }],
+  [/\bfoot|tarsal|metatarsal|قدم/, { en: 'Foot', ar: 'القدم' }],
+  [/\bhand|carpal|metacarpal|يد/, { en: 'Hand', ar: 'اليد' }]
+];
+
+/**
+ * Build the precise bilingual label shown when a part is clicked.
+ * Falls back to region labels, then to a humanized version of the mesh name.
+ */
+export function labelFor(entry) {
+  const { region, code, name } = entry;
+
+  if (VERTEBRA_WORDS[region] && code) {
+    const w = VERTEBRA_WORDS[region];
+    return { en: `${w.en} ${code}`, ar: `${w.ar} ${code}` };
+  }
+  if (region === REGIONS.DISC) {
+    const w = REGION_LABELS[REGIONS.DISC];
+    return code
+      ? { en: `${w.en} ${code}`, ar: `${w.ar} ${code}` }
+      : { ...w };
+  }
+  if (region === REGIONS.SACRUM || region === REGIONS.COCCYX || region === REGIONS.PELVIS) {
+    return { ...REGION_LABELS[region] };
+  }
+
+  // Non-spine bones by name.
+  const lower = (name || '').toLowerCase();
+  for (const [re, label] of BONE_NAMES) {
+    if (re.test(lower)) return { ...label };
+  }
+
+  // Last resort: humanize the raw mesh name.
+  const human = (name || 'Bone').replace(/[_.]/g, ' ').replace(/\s+/g, ' ').trim();
+  return { en: human || 'Bone', ar: 'عظم' };
+}
+
 /**
  * Classify a mesh by its name. Returns { region, code } where code is a short
  * identifier like "L4", "T12", "C1", or "L4-L5" for discs when detectable.
@@ -124,6 +184,55 @@ export function setRegionColors(registry, on) {
   }
 }
 
+const HIGHLIGHT_EMISSIVE = new THREE.Color(0x2b6cff);
+
+/**
+ * Highlight a single part with an emissive glow (reversible). Pass null to
+ * clear. Returns the previously-highlighted entry's mesh for bookkeeping.
+ */
+export function highlightPart(entry) {
+  if (!entry || !entry.material.emissive) return;
+  entry.material.emissive.copy(HIGHLIGHT_EMISSIVE);
+  entry.material.emissiveIntensity = 0.6;
+}
+
+export function clearHighlight(entry) {
+  if (!entry || !entry.material.emissive) return;
+  if (entry.baseEmissive) entry.material.emissive.copy(entry.baseEmissive);
+  else entry.material.emissive.setHex(0x000000);
+  entry.material.emissiveIntensity = 1.0;
+}
+
+/**
+ * Isolate mode: fade everything except the spine + pelvis (and discs).
+ * Faded parts become translucent rather than hidden, so they read as ghosted
+ * context. Reversible via the stored base opacity.
+ */
+const FOCUS_REGIONS = new Set([
+  REGIONS.CERVICAL,
+  REGIONS.THORACIC,
+  REGIONS.LUMBAR,
+  REGIONS.SACRUM,
+  REGIONS.COCCYX,
+  REGIONS.DISC,
+  REGIONS.PELVIS
+]);
+
+export function setIsolate(registry, on) {
+  for (const part of registry.parts) {
+    const focused = FOCUS_REGIONS.has(part.region);
+    if (on && !focused) {
+      part.material.transparent = true;
+      part.material.opacity = 0.06;
+      part.material.depthWrite = false;
+    } else {
+      part.material.transparent = part.baseTransparent;
+      part.material.opacity = part.baseOpacity;
+      part.material.depthWrite = true;
+    }
+  }
+}
+
 /**
  * Walk the loaded model, give every mesh its own material instance (so colors
  * can be changed independently), and return a registry.
@@ -176,8 +285,13 @@ export function buildRegistry(root, { isPlaceholder = false } = {}) {
       region,
       code,
       baseColor,
-      material: o.material
+      material: o.material,
+      // Remember the material's natural emissive so highlights are reversible.
+      baseEmissive: o.material.emissive ? o.material.emissive.clone() : null,
+      baseOpacity: o.material.opacity,
+      baseTransparent: o.material.transparent
     };
+    entry.label = labelFor(entry);
     parts.push(entry);
     o.userData.anatomy = entry;
     byRegion[region].push(entry);

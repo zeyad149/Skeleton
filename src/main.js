@@ -2,7 +2,9 @@ import * as THREE from 'three';
 import { createStudio } from './scene.js';
 import { createBackgrounds } from './backgrounds.js';
 import { loadSkeleton } from './loader.js';
-import { buildRegistry, setRegionColors } from './anatomy.js';
+import { buildRegistry, setRegionColors, setIsolate } from './anatomy.js';
+import { createCameraDirector } from './camera.js';
+import { createPicker } from './interactions.js';
 
 /**
  * Anatomy Skeleton Studio — Stage 1
@@ -34,6 +36,8 @@ function hideLoader() {
 
 // ---------- Load the skeleton ----------
 let registry = null;
+let director = null;
+let picker = null;
 
 loadSkeleton({ onProgress: setProgress, onStatus: setStatus }).then(
   ({ object, isPlaceholder }) => {
@@ -42,9 +46,16 @@ loadSkeleton({ onProgress: setProgress, onStatus: setStatus }).then(
     // Stage 2: catalog every named part into an addressable registry.
     registry = buildRegistry(object, { isPlaceholder });
     console.info('[anatomy] parts catalogued:', registry.summary());
-
-    // Surface the spine breakdown in the UI so per-bone separation is visible.
     reportSpine(registry);
+
+    // Stage 3: camera presets + click-to-label picking.
+    director = createCameraDirector(camera, controls, object, registry);
+    picker = createPicker({
+      renderer,
+      camera,
+      registry,
+      labelEl: document.getElementById('label')
+    });
 
     setProgress(1);
     // Brief pause so the 100% state is visible, then fade the overlay out.
@@ -85,6 +96,25 @@ if (regionToggle) {
   });
 }
 
+// ---------- Stage 3: camera presets ----------
+document.querySelectorAll('[data-view]').forEach((btn) => {
+  btn.addEventListener('click', () => {
+    if (!director) return;
+    director.go(btn.dataset.view);
+  });
+});
+
+// ---------- Stage 3: isolate mode (spine + pelvis only) ----------
+const isolateToggle = document.getElementById('isolate-toggle');
+if (isolateToggle) {
+  isolateToggle.addEventListener('click', () => {
+    if (!registry) return;
+    const on = !isolateToggle.classList.contains('is-active');
+    isolateToggle.classList.toggle('is-active', on);
+    setIsolate(registry, on);
+  });
+}
+
 // ---------- Hide UI for recording (H) ----------
 const ui = document.getElementById('ui');
 window.addEventListener('keydown', (e) => {
@@ -96,5 +126,7 @@ window.addEventListener('keydown', (e) => {
 // ---------- Render loop ----------
 renderer.setAnimationLoop(() => {
   controls.update();
+  if (director) director.update();
+  if (picker) picker.update();
   renderer.render(scene, camera);
 });

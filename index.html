@@ -29,7 +29,13 @@
       </div>
     </div>
 
-    <!-- Minimal UI (hideable for recording). Stage 1: backgrounds only. -->
+    <!-- Bilingual label for the clicked bone (tracks the part in screen space) -->
+    <div id="label" class="label">
+      <div class="label__en"></div>
+      <div class="label__ar" dir="rtl" lang="ar"></div>
+    </div>
+
+    <!-- Minimal UI (hideable for recording). -->
     <div id="ui" class="ui">
       <div class="ui__group">
         <div class="ui__label">Background</div>
@@ -40,13 +46,23 @@
         </div>
       </div>
       <div class="ui__group">
+        <div class="ui__label">View</div>
+        <div class="ui__row">
+          <button class="btn" data-view="anterior">Front</button>
+          <button class="btn" data-view="sagittal">Side</button>
+          <button class="btn" data-view="posterior">Back</button>
+          <button class="btn" data-view="lumbar">Lumbar</button>
+        </div>
+      </div>
+      <div class="ui__group">
         <div class="ui__label">Spine</div>
         <div class="ui__row">
           <button class="btn" id="region-toggle">Color-code regions</button>
+          <button class="btn" id="isolate-toggle">Isolate</button>
         </div>
         <div id="spine-readout" class="ui__readout">Loading spine…</div>
       </div>
-      <div class="ui__hint">Press <kbd>H</kbd> to hide UI for recording</div>
+      <div class="ui__hint">Click a bone to label it · Press <kbd>H</kbd> to hide UI</div>
     </div>
 
     <script type="module" src="/src/main.js"></script>

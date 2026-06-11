@@ -84,6 +84,56 @@ body {
   min-height: 16px;
 }
 
+/* ---------- Bilingual bone label ---------- */
+.label {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 30;
+  padding: 9px 14px;
+  background: rgba(10, 12, 16, 0.82);
+  border: 1px solid rgba(120, 180, 255, 0.45);
+  border-radius: 11px;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  text-align: center;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.18s ease;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.4);
+  will-change: transform;
+}
+.label.is-visible {
+  opacity: 1;
+}
+.label::after {
+  /* small connector dot */
+  content: '';
+  position: absolute;
+  left: 50%;
+  bottom: -5px;
+  width: 9px;
+  height: 9px;
+  margin-left: -4.5px;
+  background: rgba(10, 12, 16, 0.82);
+  border-right: 1px solid rgba(120, 180, 255, 0.45);
+  border-bottom: 1px solid rgba(120, 180, 255, 0.45);
+  transform: rotate(45deg);
+}
+.label__en {
+  font-size: 15px;
+  font-weight: 600;
+  color: #f2f6ff;
+  letter-spacing: 0.01em;
+}
+.label__ar {
+  font-family: 'Noto Sans Arabic', 'Inter', sans-serif;
+  font-size: 15px;
+  font-weight: 500;
+  color: #add0ff;
+  margin-top: 2px;
+}
+
 /* ---------- Minimal UI ---------- */
 .ui {
   position: fixed;

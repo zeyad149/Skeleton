@@ -29,9 +29,17 @@ What's included now:
 > **procedural placeholder** skeleton so you can confirm the lighting and look.
 > It disappears automatically the moment you add the real GLB.
 
-Still to come: Stage 2 (spine detail + per-bone separation), Stage 3
-(click-to-label, isolate mode, camera presets), Stage 4 (movement animations +
-disc-compression color effect).
+**Stage 2 (done):** every vertebra and disc is a separately-addressable object;
+a registry classifies the spine into regions; "Color-code regions" proves it.
+
+**Stage 3 (done):** click/tap any bone to highlight it and show a bilingual
+(English + Arabic) label that tracks the part on screen; **Isolate** fades
+everything except spine + pelvis; preset camera buttons (Front / Side / Back /
+Lumbar close-up) animate smoothly between framings.
+
+Still to come: Stage 4 (movement animations: flexion, extension, lateral
+flexion, hip hinge, pelvic tilt — plus the disc-compression color effect and a
+speed slider).
 
 ---
 
@@ -116,5 +124,9 @@ blocks CDNs, copy the decoder from
 | Orbit | Left-drag / one-finger drag |
 | Pan | Right-drag / two-finger drag |
 | Zoom | Scroll / pinch |
-| Switch background | Buttons (bottom-left) |
+| Label a bone | Click / tap it (click again or tap empty space to clear) |
+| Camera presets | Front / Side / Back / Lumbar buttons |
+| Isolate spine + pelvis | **Isolate** button |
+| Color-code spine regions | **Color-code regions** button |
+| Switch background | Dark / White / Green buttons |
 | Hide/show UI | `H` |
