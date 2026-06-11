@@ -89,16 +89,24 @@ file is missing, the app falls back to a clearly-marked procedural placeholder.
 | Action | Control |
 | --- | --- |
 | Orbit | Left-drag / one-finger drag |
-| Pan | Right-drag / two-finger drag |
-| Zoom | Scroll / pinch |
+| Pan freely (no fixed centre) | Right-drag / two-finger drag |
+| Zoom toward cursor | Scroll / pinch |
+| Re-frame if you drift | **Reset view** button |
 | Label a bone | Click / tap it (click again or tap empty space to clear) |
 | Camera presets | Front / Side / Back / Lumbar buttons |
-| Isolate spine + pelvis | **Isolate** button |
+| Display mode | **Full body** / **Isolate** (ghost the rest) / **Spine only** (hide the rest) |
+| Highlight a spine region | **Cervical / Thoracic / Lumbar / Sacrum / Coccyx** buttons |
+| Highlight one vertebra/disc | **Single part…** dropdown (shows its label) · **Clear** to reset |
 | Color-code spine regions | **Color-code regions** button |
 | Play a movement | Pick a movement, then **▶ Play** (Reset returns to neutral) |
 | Slow a movement down | **Speed** slider (0.1×–2×) |
 | Switch background | Dark / White / Green buttons |
 | Hide/show UI | `H` |
+
+During **flexion / extension** the intervertebral discs both **redden** and
+physically **squash and bulge** under load — most at the lumbar levels, which
+flex most — to show disc compression. Use **Spine only** + the highlight
+buttons to record a clean, labelled spine in isolation.
 
 ---
 

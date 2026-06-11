@@ -60,6 +60,7 @@ export function createSpineRig(root, registry) {
     mesh: p.mesh,
     restPos: p.mesh.position.clone(),
     restQuat: p.mesh.quaternion.clone(),
+    restScale: p.mesh.scale.clone(),
     y: worldY(p.mesh),
     level: 0
   }));
@@ -109,8 +110,13 @@ export function createSpineRig(root, registry) {
     n.level = level;
   }
 
-  // ----- Map each disc to the joint nearest it (for compression colour) -----
+  // ----- Map each disc to the joint nearest it, and find its thickness axis --
+  // The thickness axis is the disc geometry's smallest local dimension — discs
+  // are flat, so that's the axial (squash) direction. Under load we squash that
+  // axis and bulge the other two, so discs visibly compress (most at the lumbar
+  // levels, which flex most) during flexion/extension.
   const discNodes = nodes.filter((n) => n.entry.region === REGIONS.DISC);
+  const _sz = new THREE.Vector3();
   for (const d of discNodes) {
     let best = 1;
     let bestDist = Infinity;
@@ -122,6 +128,11 @@ export function createSpineRig(root, registry) {
       }
     }
     d.jointIndex = best;
+
+    const geo = d.mesh.geometry;
+    if (!geo.boundingBox) geo.computeBoundingBox();
+    geo.boundingBox.getSize(_sz);
+    d.thinAxis = _sz.x <= _sz.y && _sz.x <= _sz.z ? 'x' : _sz.y <= _sz.z ? 'y' : 'z';
   }
 
   // ----- Playback state -----
@@ -233,12 +244,23 @@ export function createSpineRig(root, registry) {
       n.mesh.quaternion.copy(q);
     }
 
-    // Disc-compression colour: redden ∝ |spine joint angle| at that disc.
+    // Disc compression: redden AND physically squash/bulge ∝ |joint angle|.
     for (const d of discNodes) {
-      const mat = d.entry.material;
-      if (!mat.color) continue;
       const angle = Math.abs(jointAngles[d.jointIndex] || 0);
       const load = THREE.MathUtils.clamp((angle / REF_ANGLE) * move.discScale, 0, 1);
+
+      // Visible deformation: squash along the disc's thin (axial) direction and
+      // bulge the other two outward. Self-resetting — at load 0 it equals rest.
+      const squash = 1 - load * 0.5;
+      const bulge = 1 + load * 0.22;
+      d.mesh.scale.set(
+        d.restScale.x * (d.thinAxis === 'x' ? squash : bulge),
+        d.restScale.y * (d.thinAxis === 'y' ? squash : bulge),
+        d.restScale.z * (d.thinAxis === 'z' ? squash : bulge)
+      );
+
+      const mat = d.entry.material;
+      if (!mat.color) continue;
       mat.color.copy(d.entry.baseColor).lerp(RED, load);
       // A faint emissive bloom sells the "under load" read on video. Only touch
       // emissive under real load so a clicked disc keeps its highlight at rest.

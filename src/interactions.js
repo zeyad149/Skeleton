@@ -16,7 +16,10 @@ export function createPicker({ renderer, camera, registry, labelEl }) {
   const pointer = new THREE.Vector2();
   const meshes = registry.parts.map((p) => p.mesh);
 
-  let selected = null;
+  // `selected` is the set of highlighted entries; `labeled` is the single entry
+  // whose floating label is shown (only meaningful for single selections).
+  let selected = [];
+  let labeled = null;
   const anchor = new THREE.Vector3();
 
   let downX = 0;
@@ -44,26 +47,24 @@ export function createPicker({ renderer, camera, registry, labelEl }) {
     raycaster.setFromCamera(pointer, camera);
     const hits = raycaster.intersectObjects(meshes, false);
 
-    if (hits.length === 0) {
-      select(null);
-      return;
+    const entry = hits.length ? hits[0].object.userData.anatomy : null;
+    // Clicking the already-labelled part (or empty space) clears the selection.
+    if (!entry || entry === labeled) {
+      applySelection([], null);
+    } else {
+      applySelection([entry], entry);
     }
-    const entry = hits[0].object.userData.anatomy;
-    select(entry || null);
   });
 
-  function select(entry) {
-    // Clicking the already-selected part toggles it off. (No recursion: clicking
-    // empty space when nothing is selected is a no-op, not a re-entrant call.)
-    const next = entry && entry === selected ? null : entry;
-    if (selected) clearHighlight(selected);
-    selected = next;
-    if (!selected) {
-      hideLabel();
-      return;
-    }
-    highlightPart(selected);
-    showLabel(selected);
+  // Central selection routine used by both click-picking and the UI controls.
+  // `entries` are highlighted; `labelEntry` (optional) gets the floating label.
+  function applySelection(entries, labelEntry) {
+    for (const e of selected) clearHighlight(e);
+    selected = (entries || []).filter(Boolean);
+    for (const e of selected) highlightPart(e);
+    labeled = labelEntry || null;
+    if (labeled) showLabel(labeled);
+    else hideLabel();
   }
 
   function showLabel(entry) {
@@ -75,10 +76,10 @@ export function createPicker({ renderer, camera, registry, labelEl }) {
     labelEl.classList.remove('is-visible');
   }
 
-  // Keep the label pinned to the selected part as the camera moves.
+  // Keep the label pinned to the labelled part as the camera moves.
   function update() {
-    if (!selected) return;
-    new THREE.Box3().setFromObject(selected.mesh).getCenter(anchor);
+    if (!labeled) return;
+    new THREE.Box3().setFromObject(labeled.mesh).getCenter(anchor);
     const projected = anchor.clone().project(camera);
 
     // Hide the label if the part is behind the camera.
@@ -94,9 +95,12 @@ export function createPicker({ renderer, camera, registry, labelEl }) {
     labelEl.style.transform = `translate(-50%, -50%) translate(${x}px, ${y}px)`;
   }
 
-  function clear() {
-    select(null);
-  }
-
-  return { update, clear, getSelected: () => selected };
+  return {
+    update,
+    clear: () => applySelection([], null),
+    // Highlight a set of entries; pass a single entry as `labelEntry` to also
+    // show its bilingual label. Used by the spine-highlight UI controls.
+    selectEntries: (entries, labelEntry = null) => applySelection(entries, labelEntry),
+    getSelected: () => selected
+  };
 }

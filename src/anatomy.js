@@ -218,17 +218,43 @@ const FOCUS_REGIONS = new Set([
   REGIONS.PELVIS
 ]);
 
-export function setIsolate(registry, on) {
+// Spine proper (no pelvis) — used by the "Spine only" recording view.
+const SPINE_ONLY_REGIONS = new Set([
+  REGIONS.CERVICAL,
+  REGIONS.THORACIC,
+  REGIONS.LUMBAR,
+  REGIONS.SACRUM,
+  REGIONS.COCCYX,
+  REGIONS.DISC
+]);
+
+/**
+ * Display mode for the whole model:
+ *   'full'    — everything visible, fully opaque.
+ *   'isolate' — spine + pelvis stay solid; everything else fades to a ghost.
+ *   'spine'   — only the spine + discs are shown; everything else is HIDDEN
+ *               (clean plate for highlighting/recording the spine alone).
+ * Always resets first, so switching modes is order-independent.
+ */
+export function applyViewMode(registry, mode) {
   for (const part of registry.parts) {
-    const focused = FOCUS_REGIONS.has(part.region);
-    if (on && !focused) {
+    const m = part.material;
+    part.mesh.visible = true;
+    m.transparent = part.baseTransparent;
+    m.opacity = part.baseOpacity;
+    m.depthWrite = true;
+  }
+
+  if (mode === 'isolate') {
+    for (const part of registry.parts) {
+      if (FOCUS_REGIONS.has(part.region)) continue;
       part.material.transparent = true;
       part.material.opacity = 0.06;
       part.material.depthWrite = false;
-    } else {
-      part.material.transparent = part.baseTransparent;
-      part.material.opacity = part.baseOpacity;
-      part.material.depthWrite = true;
+    }
+  } else if (mode === 'spine') {
+    for (const part of registry.parts) {
+      if (!SPINE_ONLY_REGIONS.has(part.region)) part.mesh.visible = false;
     }
   }
 }

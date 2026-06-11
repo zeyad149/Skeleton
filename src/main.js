@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { createStudio } from './scene.js';
 import { createBackgrounds } from './backgrounds.js';
 import { loadSkeleton } from './loader.js';
-import { buildRegistry, setRegionColors, setIsolate } from './anatomy.js';
+import { buildRegistry, setRegionColors, applyViewMode, REGIONS } from './anatomy.js';
 import { createCameraDirector } from './camera.js';
 import { createPicker } from './interactions.js';
 import { createSpineRig } from './animation.js';
@@ -40,6 +40,7 @@ let registry = null;
 let director = null;
 let picker = null;
 let rig = null;
+let modelBBox = null; // kept for the "Reset view" button
 
 loadSkeleton({ onProgress: setProgress, onStatus: setStatus }).then(
   ({ object, isPlaceholder }) => {
@@ -63,8 +64,12 @@ loadSkeleton({ onProgress: setProgress, onStatus: setStatus }).then(
     object.updateMatrixWorld(true);
     rig = createSpineRig(object, registry);
 
+    // Populate the single-part highlight dropdown.
+    populateVertebraSelect(registry);
+
     // Diagnostics: confirm the model is non-empty and in front of the camera.
     const bbox = new THREE.Box3().setFromObject(object);
+    modelBBox = bbox;
     const bsize = bbox.getSize(new THREE.Vector3());
     console.info('[diag] model bounds', {
       min: bbox.min.toArray().map((n) => +n.toFixed(2)),
@@ -134,7 +139,7 @@ if (regionToggle) {
   });
 }
 
-// ---------- Stage 3: camera presets ----------
+// ---------- Camera presets + free-view reset ----------
 document.querySelectorAll('[data-view]').forEach((btn) => {
   btn.addEventListener('click', () => {
     if (!director) return;
@@ -142,15 +147,94 @@ document.querySelectorAll('[data-view]').forEach((btn) => {
   });
 });
 
-// ---------- Stage 3: isolate mode (spine + pelvis only) ----------
-const isolateToggle = document.getElementById('isolate-toggle');
-if (isolateToggle) {
-  isolateToggle.addEventListener('click', () => {
-    if (!registry) return;
-    const on = !isolateToggle.classList.contains('is-active');
-    isolateToggle.classList.toggle('is-active', on);
-    setIsolate(registry, on);
+const viewReset = document.getElementById('view-reset');
+if (viewReset) {
+  viewReset.addEventListener('click', () => {
+    if (modelBBox) frameObject(camera, controls, modelBBox);
   });
+}
+
+// ---------- Display mode: Full body / Isolate / Spine only ----------
+document.querySelectorAll('[data-display]').forEach((btn) => {
+  btn.addEventListener('click', () => {
+    if (!registry) return;
+    document
+      .querySelectorAll('[data-display]')
+      .forEach((b) => b.classList.remove('is-active'));
+    btn.classList.add('is-active');
+    applyViewMode(registry, btn.dataset.display);
+  });
+});
+
+// ---------- Highlight specific spine parts ----------
+const REGION_BY_KEY = {
+  cervical: REGIONS.CERVICAL,
+  thoracic: REGIONS.THORACIC,
+  lumbar: REGIONS.LUMBAR,
+  sacrum: REGIONS.SACRUM,
+  coccyx: REGIONS.COCCYX
+};
+
+function clearHlButtons() {
+  document.querySelectorAll('[data-hl]').forEach((b) => b.classList.remove('is-active'));
+}
+
+// Region buttons: highlight every part in that region (toggle off if re-clicked).
+document.querySelectorAll('[data-hl]').forEach((btn) => {
+  btn.addEventListener('click', () => {
+    if (!registry || !picker) return;
+    const wasActive = btn.classList.contains('is-active');
+    clearHlButtons();
+    const sel = document.getElementById('vertebra-select');
+    if (sel) sel.value = '';
+    if (wasActive) {
+      picker.clear();
+      return;
+    }
+    btn.classList.add('is-active');
+    const entries = registry.byRegion[REGION_BY_KEY[btn.dataset.hl]] || [];
+    picker.selectEntries(entries, null);
+  });
+});
+
+// Single-part dropdown: highlight + label one vertebra/disc.
+const vertebraSelect = document.getElementById('vertebra-select');
+if (vertebraSelect) {
+  vertebraSelect.addEventListener('change', () => {
+    if (!registry || !picker) return;
+    clearHlButtons();
+    const idx = vertebraSelect.value;
+    if (idx === '') {
+      picker.clear();
+      return;
+    }
+    const entry = registry.parts[+idx];
+    picker.selectEntries([entry], entry);
+  });
+}
+
+const hlClear = document.getElementById('hl-clear');
+if (hlClear) {
+  hlClear.addEventListener('click', () => {
+    clearHlButtons();
+    if (vertebraSelect) vertebraSelect.value = '';
+    if (picker) picker.clear();
+  });
+}
+
+// Build the dropdown from spine vertebrae + discs, ordered top → bottom.
+function populateVertebraSelect(reg) {
+  const sel = document.getElementById('vertebra-select');
+  if (!sel) return;
+  const spine = reg.spine
+    .map((p) => ({ p, y: p.mesh.getWorldPosition(new THREE.Vector3()).y, idx: reg.parts.indexOf(p) }))
+    .sort((a, b) => b.y - a.y);
+  for (const { p, idx } of spine) {
+    const opt = document.createElement('option');
+    opt.value = String(idx);
+    opt.textContent = p.label.en;
+    sel.appendChild(opt);
+  }
 }
 
 // ---------- Stage 4: movement animations ----------

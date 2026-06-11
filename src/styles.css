@@ -217,6 +217,23 @@ body {
   color: #06121f;
   font-weight: 600;
 }
+.ui__select {
+  flex: 1;
+  min-width: 0;
+  appearance: none;
+  border: 1px solid var(--ui-border);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--ui-text);
+  font-family: inherit;
+  font-size: 13px;
+  padding: 8px 10px;
+  border-radius: 9px;
+  cursor: pointer;
+}
+.ui__select option {
+  background: #15181d;
+  color: var(--ui-text);
+}
 .ui__readout {
   font-size: 11px;
   color: var(--ui-muted);

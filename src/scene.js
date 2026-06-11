@@ -40,13 +40,20 @@ export function createStudio(canvas) {
   );
   camera.position.set(0, 1.0, 3.4);
 
-  // ----- Controls (refined further in Stage 3) -----
+  // ----- Controls: free orbit/pan/zoom (no fixed pivot feel) -----
   const controls = new OrbitControls(camera, renderer.domElement);
   controls.enableDamping = true;
   controls.dampingFactor = 0.06;
   controls.target.set(0, 0.95, 0);
-  controls.minDistance = 0.4;
-  controls.maxDistance = 8;
+  // screenSpacePanning lets panning move the pivot anywhere in the view plane,
+  // and zoomToCursor zooms toward the pointer — together this gives a "move
+  // freely" feel instead of being locked to a centre point. A Reset button in
+  // the UI re-frames the model if you drift too far.
+  controls.screenSpacePanning = true;
+  controls.zoomToCursor = true;
+  controls.panSpeed = 1.0;
+  controls.minDistance = 0.05;
+  controls.maxDistance = 30;
   controls.update();
 
   // ----- Image-based lighting for PBR reflections -----
